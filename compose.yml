@@ -1,0 +1,39 @@
+x-env_tty: &env_tty
+  env_file:
+    - .env
+  tty: true
+x-bind_mount: &bind_mount
+  user: ${HOST_USER:-$LOGNAME}
+  working_dir: /home/${HOST_USER:-$LOGNAME}/app
+  restart: unless-stopped
+  platform: linux/amd64
+services:
+  front:
+    container_name: vue_tutorial
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+        HOST_USER: ${HOST_USER:-$LOGNAME}
+        HOST_GROUP: ${HOST_GROUP:-$LOGNAME}
+        TZ: ${TZ:-Etc/UTC}
+        NODE_ENV: ${NODE_ENV:-'development'}
+        DOMAIN: ${DOMAIN:-'localhost'}
+    !!merge <<: [*bind_mount, *env_tty]
+    volumes:
+      - type: bind
+        source: .
+        target: /home/${HOST_USER:-$LOGNAME}/app
+    entrypoint: bash
+    #command: -c 'bun dev'
+    ports:
+      - 127.0.0.1:$FRONT_PORT:$FRONT_PORT
+      - 127.0.0.1:3090:3090
+    #heathcheck:
+    #  test: wget --spider front:${FRONT_PORT}
+    #  interval: 5s
+    #  retries: 24
+    #  start_period: 60s
+    #  timeout: 3s
